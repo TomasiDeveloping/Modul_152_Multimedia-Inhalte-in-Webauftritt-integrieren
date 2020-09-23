@@ -1,0 +1,181 @@
+<html>
+<head>
+   <title>Halloween Memory</title>
+    <link rel="stylesheet" href="./CSS/halloween.css">
+    <link href="https://fonts.googleapis.com/css?family=Trade+Winds&display=swap" rel="stylesheet">
+   <script src="https://unpkg.com/vue"></script>
+   <script>
+      Vue.directive ('visible', {
+         bind: function (el, binding, vnode) {
+            el.style.visibility = (binding.value ? 'visible' : 'hidden')
+         }
+      })
+
+   </script>
+
+</head>
+
+
+<body>
+    <h1>Halloween Memory</h1>
+
+   <div id="app">
+         <audio controls autoplay style="margin-left: 80%;">
+               <source src="./Mp3/Marilyn Manson - This Is Halloween (HQ).mp3" type="audio/mpeg">
+             Dein Browser unterstützt den AudioPlayer nicht
+             </audio>
+      Dein Name bitte <input type="text" name="playername" v-model="playername">
+      <hr>
+      <h2>
+      {{ message + playername }}
+      </h2>
+      <p>Du hast nach dem Umdrehen einer Karte <b>{{ tileStates.marked.timeout / 1000 }} Sekunden</b> Zeit, eine zweite Karte zu drehen</p>
+      <p>Deine Anzahl Versuche bisher: <b>{{click_count}}</b>, davon <b>{{success_count}}</b> erfolgreich.</p>
+      <p v-if="removed.length == 20">Spiel beendet.
+         <button @click="resetTiles()">Neu mischen</button>
+      </p>
+
+      <div class="mgrid">
+         <div class="tile"
+              v-for="i in 20">
+            <transition name="fade">
+               <div v-if='tiles[i].active'
+                  class="mtile"
+                  :class='tiles[i].state'
+                  @click="turnTile(i)">
+                     <div class="flip-card-back">
+                        <img :src="tiles[i].picsrc">
+                     </div>
+                     <div class="flip-card-front">
+                     </div>
+               </div>
+            </transition>
+         </div>
+      </div>
+
+   </div>
+
+   <script>
+
+      new Vue({
+      	el: '#app',
+      	data: {
+            playername: '',
+      		message: 'Grüezi ',
+      		memory: {"size":{"rows":4, "cols":5}},
+            click_count: 0,
+            success_count: 0,
+      		removed: [],
+      		probing: null,
+            TO_inactivity: null,
+      		locked: false,
+      		tileStates: {
+      							"idle":	  {"timeout":0},
+      							"marked":  {"timeout":10000},
+      							"error":	  {"timeout":1000},
+      							"success": {"timeout":2000}
+                       },
+            pics: [
+            "flasche.PNG",
+                    "gespenst.PNG",
+                    "hand.PNG",
+                    "kerze.PNG",
+                    "kessel.PNG",
+                    "kuerbis.PNG",
+                    "netz.PNG",
+                    "rabe.PNG",
+                    "rip.PNG",
+                    "sensemann.PNG"
+                  ],
+            tiles: [],
+      	},
+         created: function() { this.shufflePics() },
+      	methods: {
+            randomPicNr: function () {
+               return Math.floor (Math.random() * (this.pics.length));
+            },
+            shufflePics: function () {
+               let i = 0;
+               this.tiles.push({});   
+               while (i < (2 * this.pics.length)) {
+                  let r = this.randomPicNr();
+                  let count_r = this.tiles.reduce ( (cnt, item) => { return cnt + (item.picnr == r ? 1 : 0) }, 0);
+                  if (count_r < 2) {
+                     this.tiles.push ({"active": true,
+                                       "state": "idle",
+                                       "picnr":r,
+                                       "picsrc": "./Bilder/" + this.pics[r],
+                                       "pic": (() => { var img = document.createElement("IMG");
+                                                      img.setAttribute("src", ".(Bilder/" + this.pics[r]);
+                                                      return img; })()
+                                      });
+                     i++;
+                  }
+               }
+            },
+            resetTiles: function () {
+               this.tiles = [];
+               this.removed = [];
+               this.click_count = 0;
+               this.success_count = 0;
+            },
+      		markTile: function (i) {
+               this.tiles[i].state = "marked";
+               this.probing = { tileNr:i };
+               this.TO_inactivity = setTimeout ((t1) => { if ((this.probing != undefined) && !this.locked) this.unmarkTile (t1); },
+                                                this.tileStates.marked.timeout,
+                                                i );
+         	},
+      		unmarkTile: function (i) {
+               this.tiles[i].state = "idle";
+               if (this.TO_inactivity != undefined) {
+                  clearTimeout (this.TO_inactivity);
+                  this.TO_inactivity = null;
+               }
+               this.probing = null;
+            },
+            removeTile: function (i) {
+               this.tiles[i].active = false;
+               this.removed.push (i);
+            },
+            turnTile: function (i) {
+            	if ((! this.locked) ) {
+                  if (this.tiles.length <= 0) this.shufflePics();
+                  if (this.probing == undefined) {
+                     this.markTile (i);
+                  } else {
+                     if (this.probing.tileNr == i) {
+                        this.unmarkTile (i);
+                     } else {
+                        this.click_count++;
+                        var hit = (this.tiles[this.probing.tileNr].picnr == this.tiles[i].picnr);
+                        var res = (hit ? "success" : "error");
+                        this.locked = true;
+
+                        setTimeout ((t1, t2, remove) => { this.unmarkTile (t1);
+                                                          this.unmarkTile (t2);
+                                                          if (remove) {
+                                                             this.removeTile (t1);
+                                                             this.removeTile (t2);
+                                                             this.success_count++;
+                                                          }
+                                                          this.locked = false;
+                                                        },
+                                    this.tileStates[res].timeout,
+                                    i,
+                                    this.probing.tileNr,
+                                    (res == "success")
+                                   );
+                        this.tiles[this.probing.tileNr].state = res
+                        this.tiles[i].state = res
+                     }
+                  }
+               }
+            }
+        }
+
+      })
+
+   </script>
+</body>
+</html>

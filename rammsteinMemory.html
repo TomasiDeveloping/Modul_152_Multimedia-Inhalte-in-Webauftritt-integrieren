@@ -1,0 +1,175 @@
+<html>
+<head>
+   <title>Rammstein Musik Memory</title>
+   <link rel="stylesheet" href="./CSS/rammstein.css">
+   <link href="https://fonts.googleapis.com/css?family=Kumar+One&display=swap" rel="stylesheet">
+   <script src="https://unpkg.com/vue"></script>
+   <script>
+      Vue.directive ('visible', {
+         bind: function (el, binding, vnode) {
+            el.style.visibility = (binding.value ? 'visible' : 'hidden')
+         }
+      })
+
+   </script>
+
+</head>
+
+
+<body>
+<h1>Rammstein Musik Memory</h1>
+   <div id="app">
+      Dein Name bitte <input type="text" name="playername" v-model="playername">
+      <button class="button">Home</button>
+      <hr>
+      <h2>
+      {{ message + playername }}
+      </h2>
+      <p>Der Song läuft 5 sekunden lang</p>
+      <p>Deine Anzahl Versuche bisher: <b>{{click_count}}</b>, noch <b>{{success_count}}</b>
+        <span v-if="success_count > 1">Paare zu finden.</span><span v-if="success_count == 1">Paar zu finden.</span> </p>
+      <p v-if="removed.length == 20">Spiel beendet.
+         <button @click="resetTiles()">Neu mischen</button>
+      </p>
+
+      <div class="mgrid">
+         <div class="tile"
+              v-for="i in 20">
+            <transition name="fade">
+               <div v-if='(tiles[i] ? tiles[i].active : true)'
+                  class="mtile"
+                  :class='(tiles[i] ? tiles[i].state : "idle")'
+                  @click="turnTile(i)">
+                  <transition name="pic">
+                     <audio autoplay v-if="(tiles[i] ? (tiles[i].state != 'idle') : true)" v-bind:id="(tiles[i] ? i: null)"
+                        :src="(tiles[i] ? tiles[i].picsrc : '')">
+                        <source v-if="(tiles[i] ? (tiles[i].state != 'idle') : true)"
+                            :src= "(tiles[i] ? tiles[i].picsrc : '')" type="audio/mpeg">
+                     </audio>
+                  </transition>
+               </div>
+            </transition>
+         </div>
+      </div>
+
+   </div>
+
+   <script>
+
+      new Vue({
+      	el: '#app',
+      	data: {
+            playername: '',
+      		message: 'Grüezi ',
+      		memory: {"size":{"rows":4, "cols":5}},
+            click_count: 0,
+            success_count: 10,
+      		removed: [],
+      		probing: null,
+            TO_inactivity: null,
+      		locked: false,
+      		tileStates: {
+      							"idle":	  {"timeout":0},
+      							"marked":  {"timeout":10000},
+      							"error":	  {"timeout":3000},
+      							"success": {"timeout":2000}
+                       },
+            pics: [
+                     "Amerika.mp3",
+                     "Deutschland.mp3",
+                     "Engel.mp3",
+                     "Feuer.mp3",
+                     "Links.mp3",
+                     "Radio.mp3",
+                     "Sehnsucht.mp3",
+                     "Sonne.mp3",
+                     "Spieluhr.mp3",
+                     "Waidmanns.mp3"
+                  ],
+            tiles: [],
+      	},
+      	methods: {
+            randomPicNr: function () {
+               return Math.floor (Math.random() * (this.pics.length));
+            },
+            shufflePics: function () {
+               let i = 0;
+               this.tiles.push({}); 
+               while (i < (2 * this.pics.length)) {
+                  let r = this.randomPicNr();
+                  let count_r = this.tiles.reduce ( (cnt, item) => { return cnt + (item.picnr == r ? 1 : 0) }, 0);
+                  if (count_r < 2) {
+                     this.tiles.push ({"active": true,
+                                       "state": "idle",
+                                       "picnr":r,
+                                       "picsrc": "./Mp3/" + this.pics[r],
+                                      });
+                     i++;
+                  }
+               }
+            },
+            resetTiles: function () {
+               this.tiles = [];
+               this.removed = [];
+               this.click_count = 0;
+               this.success_count = 10;
+            },
+      		markTile: function (i) {
+               this.tiles[i].state = "marked";
+               this.probing = { tileNr:i };
+         	},
+      		unmarkTile: function (i) {
+               this.tiles[i].state = "idle";
+               if (this.TO_inactivity != undefined) {
+                  clearTimeout (this.TO_inactivity);
+                  this.TO_inactivity = null;
+               }
+               this.probing = null;
+            },
+            removeTile: function (i) {
+               this.tiles[i].active = false;
+               this.removed.push (i);
+            },
+            turnTile: function (i) {
+            	if ((! this.locked) ) {
+                  if (this.tiles.length <= 0)  this.shufflePics();
+                  if (this.probing == undefined) {
+                     this.markTile (i);
+                  } else {
+                     if (this.probing.tileNr == i) {
+                        this.unmarkTile (i);
+                     } else {
+                        var x = document.getElementById(this.probing.tileNr); 
+                        x.pause();
+                        this.click_count++;
+                        var hit = (this.tiles[this.probing.tileNr].picnr == this.tiles[i].picnr);
+                        var res = (hit ? "success" : "error");
+                        this.locked = true;
+
+                        setTimeout ((t1, t2, remove) => { this.unmarkTile (t1);
+                                                          this.unmarkTile (t2);
+                                                          if (remove) {
+                                                             this.removeTile (t1);
+                                                             this.removeTile (t2);
+                                                             this.success_count--;
+                                                          }
+                                                          this.locked = false;
+                                                        },
+                                    this.tileStates[res].timeout,
+                                    i,
+                                    this.probing.tileNr,
+                                    (res == "success")
+                                   );
+                        this.tiles[this.probing.tileNr].state = res
+                        this.tiles[i].state = res
+                     }
+                  }
+               }
+            }      
+        }
+
+      })
+
+   </script>
+</body>
+</html>
