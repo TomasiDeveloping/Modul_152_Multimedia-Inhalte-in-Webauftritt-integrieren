@@ -1,0 +1,115 @@
+body {
+    font-family: arial;
+    color: red;
+    margin: 10px;
+    background-image: url("../Bilder/halloweenBackground.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  h1 {
+      font-family: 'Trade Winds', cursive;
+      font-size: 4em;
+      color: yellow;
+      text-align: center;
+  }
+  h2 {
+      color: yellow;
+  }
+
+  .mgrid {
+     width:550px;
+     display:flex;
+     flex-wrap: wrap;
+     justify-content: flex-start;
+  }
+
+  .tile {
+     width:110px;
+     height:110px;
+     padding: 0px;
+     border: 0px;
+     perspective: 200px;
+     
+  }
+
+  .mtile {
+     height: 100px;
+     width: 100px;
+     padding: 0px;
+     text-align: center;
+     vertical-align: middle;
+     border: 5px solid;
+     background: radial-gradient(circle, rgba(182,174,238,0) 20%, rgba(3,38,189,1) 100%);
+     transition: transform 1s;
+     transform-style: preserve-3d;
+  }
+
+  .mtile.idle {
+     border-color: white;
+     z-index: -10;
+  }
+    .mtile.marked {
+      transform: rotateY(180deg);
+      z-index: 1000;
+     border-color: #ffcc00;
+  }
+  .mtile.error {
+     border-color: red;
+     transform: rotateY(180deg);
+     z-index: 1000;
+  }
+  .mtile.success {
+     border-color: lightgreen;
+     transform: rotateY(180deg);
+     z-index: 1000;
+  }
+  .flip-card-front, .flip-card-back {
+   position: absolute;
+   width: 100%;
+   height: 100%;
+   backface-visibility: hidden;
+   }
+
+   .flip-card-back {
+      background-color: #2980b9;
+      color: white;
+      transform: rotateY(180deg);
+      }
+
+  
+
+  .fade-enter {
+     opacity: 0;
+  }
+  .fade-enter-active {
+     transition: opacity 1s;
+  }
+  .fade-leave-active {
+     transition: opacity 1s;
+     opacity: 0;
+  }
+
+  .pic-enter {
+     opacity: 0;
+  }
+  .pic-enter-active {
+     transition: opacity 0.25s;
+  }
+  .pic-leave-active {
+     transition: opacity 0.25s;
+     opacity: 0;
+  }
+  html{
+      width: 100%;
+     
+  }
+  #app {
+      margin-left: 5px;
+  }
+  b {
+      color: white;
+  }
+  .test {
+   transition: transform 1.0s;
+   transform-style: preserve-3d;
+  }
